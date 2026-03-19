@@ -282,6 +282,7 @@
         "collection": "hydrogen",
         "layout_type": "carousel",
         "carousel_on_mobile": false,
+        "show_scrollbar": true,
         "max_products": 16,
         "columns": 4,
         "mobile_columns": "2",
