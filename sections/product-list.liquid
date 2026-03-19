@@ -231,13 +231,14 @@
       display: none;
     }
 
-    #shopify-section-{{ section.id }} .section-resource-list__header {
-      justify-content: center;
-      text-align: center;
+    #shopify-section-{{ section.id }} .section-resource-list__header .group-block-content {
+      justify-content: center !important;
+      align-items: center !important;
+      width: 100%;
     }
 
-    #shopify-section-{{ section.id }} .section-resource-list__header .layout-panel-flex {
-      justify-content: center;
+    #shopify-section-{{ section.id }} .section-resource-list__header .group-block-content > * {
+      text-align: center;
     }
   }
 
