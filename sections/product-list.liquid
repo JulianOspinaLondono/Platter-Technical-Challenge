@@ -225,6 +225,22 @@
 {%- endif -%}
 
 {% style %}
+  /* Mobile: hide "Shop All" button and center header */
+  @media screen and (max-width: 749px) {
+    #shopify-section-{{ section.id }} .section-resource-list__header .link-arrow {
+      display: none;
+    }
+
+    #shopify-section-{{ section.id }} .section-resource-list__header {
+      justify-content: center;
+      text-align: center;
+    }
+
+    #shopify-section-{{ section.id }} .section-resource-list__header .layout-panel-flex {
+      justify-content: center;
+    }
+  }
+
   .product-list-scrollbar {
     width: 100%;
     padding-top: 1.5rem;
