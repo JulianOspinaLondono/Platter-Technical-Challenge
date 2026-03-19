@@ -9,6 +9,7 @@
         --badge-font-family: var(--font-{{ settings.badge_font_family }}--family); --badge-font-weight: var(--font-{{ settings.badge_font_family }}--weight); --badge-text-transform: {{ settings.badge_text_transform }};
       "
     >
+      {%- comment -%} Native badges: sold out & sale {%- endcomment -%}
       {%- if product.available == false or product.compare_at_price > product.price -%}
         <div
           class="
@@ -23,6 +24,37 @@
           {%- endif -%}
         </div>
       {%- endif -%}
+
+      {%- comment -%}
+        Tag-based badges: add tags with prefix "badge:" to products.
+        Examples: badge:best-seller, badge:save-15, badge:new, badge:limited
+      {%- endcomment -%}
+      {%- for tag in product.tags -%}
+        {%- assign tag_lower = tag | downcase -%}
+        {%- if tag_lower contains 'badge:' -%}
+          {%- assign badge_value = tag | split: ':' | last | strip -%}
+          {%- assign badge_value_lower = badge_value | downcase -%}
+
+          {%- liquid
+            assign badge_label = badge_value | replace: '-', ' '
+            assign badge_modifier = 'custom'
+
+            if badge_value_lower == 'best-seller' or badge_value_lower == 'best seller'
+              assign badge_modifier = 'best-seller'
+            elsif badge_value_lower contains 'save'
+              assign badge_modifier = 'save'
+            elsif badge_value_lower == 'new'
+              assign badge_modifier = 'new'
+            elsif badge_value_lower == 'limited'
+              assign badge_modifier = 'limited'
+            endif
+          -%}
+
+          <div class="product-badges__badge product-badges__badge--rectangle product-badges__badge--tag product-badges__badge--{{ badge_modifier }}">
+            {{- badge_label -}}
+          </div>
+        {%- endif -%}
+      {%- endfor -%}
     </div>
     {%  if settings.quick_add or settings.mobile_quick_add %}
       {% render 'quick-add', product: product, section_id: section.id %}
@@ -47,6 +79,9 @@
 
     position: absolute;
     z-index: var(--layer-flat);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
   }
 
   .product-badges--bottom-left {
@@ -83,6 +118,36 @@
   .product-badges__badge--rectangle {
     padding-block: var(--badge-rectangle-padding-block);
     padding-inline: var(--badge-rectangle-padding-inline);
+  }
+
+  /* Tag-based badge variants */
+  .product-badges__badge--tag {
+    text-transform: var(--badge-text-transform, uppercase);
+  }
+
+  .product-badges__badge--best-seller {
+    background: var(--badge-best-seller-bg, #1a1a1a);
+    color: var(--badge-best-seller-color, #ffffff);
+  }
+
+  .product-badges__badge--save {
+    background: var(--badge-save-bg, #2d6b3f);
+    color: var(--badge-save-color, #ffffff);
+  }
+
+  .product-badges__badge--new {
+    background: var(--badge-new-bg, #0057b8);
+    color: var(--badge-new-color, #ffffff);
+  }
+
+  .product-badges__badge--limited {
+    background: var(--badge-limited-bg, #8b5e3c);
+    color: var(--badge-limited-color, #ffffff);
+  }
+
+  .product-badges__badge--custom {
+    background: var(--badge-custom-bg, #1a1a1a);
+    color: var(--badge-custom-color, #ffffff);
   }
 {% endstylesheet %}
 

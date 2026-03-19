@@ -549,6 +549,18 @@
       --badge-rectangle-padding-inline: 10px;
     }
 
+    /* Tag-based badge colors */
+    --badge-best-seller-bg: {{ settings.badge_best_seller_bg | default: '#1a1a1a' }};
+    --badge-best-seller-color: {{ settings.badge_best_seller_color | default: '#ffffff' }};
+    --badge-save-bg: {{ settings.badge_save_bg | default: '#2d6b3f' }};
+    --badge-save-color: {{ settings.badge_save_color | default: '#ffffff' }};
+    --badge-new-bg: {{ settings.badge_new_bg | default: '#0057b8' }};
+    --badge-new-color: {{ settings.badge_new_color | default: '#ffffff' }};
+    --badge-limited-bg: {{ settings.badge_limited_bg | default: '#8b5e3c' }};
+    --badge-limited-color: {{ settings.badge_limited_color | default: '#ffffff' }};
+    --badge-custom-bg: {{ settings.badge_best_seller_bg | default: '#1a1a1a' }};
+    --badge-custom-color: {{ settings.badge_best_seller_color | default: '#ffffff' }};
+
     /* Icons */
     --icon-size-2xs: 0.6rem;
     --icon-size-xs: 0.85rem;
