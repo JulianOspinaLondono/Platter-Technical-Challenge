@@ -70,6 +70,14 @@
     test_id: 'resource-list-grid'
   %}
 
+  {%- if section.settings.show_scrollbar and section.settings.layout_type == 'carousel' -%}
+    <div class="product-list-scrollbar" id="scrollbar-{{ section.id }}" aria-hidden="true">
+      <div class="product-list-scrollbar__track">
+        <div class="product-list-scrollbar__thumb" id="scrollbar-thumb-{{ section.id }}"></div>
+      </div>
+    </div>
+  {%- endif -%}
+
   <div
     class="section-resource-list__content"
     style="--horizontal-alignment: {{ section.settings.horizontal_alignment }};"
@@ -77,6 +85,146 @@
     {%- content_for 'blocks' -%}
   </div>
 </div>
+
+{%- if section.settings.show_scrollbar and section.settings.layout_type == 'carousel' -%}
+  <script>
+    (function() {
+      var sectionId = '{{ section.id }}';
+
+      function initScrollbar() {
+        var section = document.getElementById('scrollbar-' + sectionId);
+        if (!section) return;
+
+        var thumb = document.getElementById('scrollbar-thumb-' + sectionId);
+        var sectionEl = section.closest('.section-resource-list');
+        if (!sectionEl) return;
+
+        var scroller = sectionEl.querySelector('slideshow-slides');
+        if (!scroller) return;
+
+        function updateThumb() {
+          var scrollWidth = scroller.scrollWidth - scroller.clientWidth;
+          if (scrollWidth <= 0) {
+            section.style.display = 'none';
+            return;
+          }
+          section.style.display = '';
+          var ratio = scroller.clientWidth / scroller.scrollWidth;
+          var progress = scroller.scrollLeft / scrollWidth;
+          var trackWidth = section.querySelector('.product-list-scrollbar__track').offsetWidth;
+          var thumbWidth = Math.max(ratio * trackWidth, 48);
+          thumb.style.width = thumbWidth + 'px';
+          thumb.style.transform = 'translateX(' + (progress * (trackWidth - thumbWidth)) + 'px)';
+        }
+
+        scroller.addEventListener('scroll', updateThumb, { passive: true });
+        window.addEventListener('resize', updateThumb, { passive: true });
+
+        /* Drag the thumb to scroll */
+        var isDragging = false;
+        var startX = 0;
+        var startScrollLeft = 0;
+
+        thumb.addEventListener('pointerdown', function(e) {
+          isDragging = true;
+          startX = e.clientX;
+          startScrollLeft = scroller.scrollLeft;
+          thumb.setPointerCapture(e.pointerId);
+          e.preventDefault();
+        });
+
+        document.addEventListener('pointermove', function(e) {
+          if (!isDragging) return;
+          var trackWidth = section.querySelector('.product-list-scrollbar__track').offsetWidth;
+          var thumbWidth = thumb.offsetWidth;
+          var maxThumbTravel = trackWidth - thumbWidth;
+          var scrollWidth = scroller.scrollWidth - scroller.clientWidth;
+          var deltaX = e.clientX - startX;
+          var scrollDelta = (deltaX / maxThumbTravel) * scrollWidth;
+          scroller.scrollLeft = startScrollLeft + scrollDelta;
+        });
+
+        document.addEventListener('pointerup', function() {
+          isDragging = false;
+        });
+
+        /* Click on track to jump */
+        section.querySelector('.product-list-scrollbar__track').addEventListener('click', function(e) {
+          if (e.target === thumb) return;
+          var rect = this.getBoundingClientRect();
+          var clickPos = (e.clientX - rect.left) / rect.width;
+          var scrollWidth = scroller.scrollWidth - scroller.clientWidth;
+          scroller.scrollTo({ left: clickPos * scrollWidth, behavior: 'smooth' });
+        });
+
+        /* Initial state with delay to wait for layout */
+        setTimeout(updateThumb, 100);
+
+        /* MutationObserver in case slideshow loads lazily */
+        var observer = new MutationObserver(updateThumb);
+        observer.observe(scroller, { childList: true, subtree: true });
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initScrollbar);
+      } else {
+        initScrollbar();
+      }
+    })();
+  </script>
+{%- endif -%}
+
+{% style %}
+  .product-list-scrollbar {
+    width: 100%;
+    padding-top: 1.5rem;
+    display: none;
+  }
+
+  @media screen and (min-width: 750px) {
+    .product-list-scrollbar {
+      display: block;
+    }
+  }
+
+  .product-list-scrollbar__track {
+    position: relative;
+    width: 100%;
+    height: 0.125rem;
+    background: var(--color-border, #e5e5e5);
+    border-radius: 0.125rem;
+    cursor: pointer;
+    transition: height 0.3s ease;
+  }
+
+  .product-list-scrollbar:hover .product-list-scrollbar__track,
+  .product-list-scrollbar:active .product-list-scrollbar__track {
+    height: 0.375rem;
+  }
+
+  .product-list-scrollbar__thumb {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    height: 0.1875rem;
+    min-width: 3rem;
+    background: var(--color-foreground, #1a1a1a);
+    border-radius: 0.1875rem;
+    transform: translateY(-50%);
+    cursor: grab;
+    transition: height 0.3s ease;
+    will-change: transform, width;
+  }
+
+  .product-list-scrollbar:hover .product-list-scrollbar__thumb,
+  .product-list-scrollbar:active .product-list-scrollbar__thumb {
+    height: 0.375rem;
+  }
+
+  .product-list-scrollbar__thumb:active {
+    cursor: grabbing;
+  }
+{% endstyle %}
 
 {% schema %}
 {
@@ -128,6 +276,14 @@
       "label": "t:settings.carousel_on_mobile",
       "default": false,
       "visible_if": "{{ section.settings.layout_type != 'carousel' }}"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_scrollbar",
+      "label": "Show scroll progress bar",
+      "info": "Displays a draggable scrollbar below the carousel on desktop",
+      "default": false,
+      "visible_if": "{{ section.settings.layout_type == 'carousel' }}"
     },
     {
       "type": "range",
