@@ -1,0 +1,650 @@
+{% comment %}
+  Best Sellers Section
+  - Desktop: horizontal scroll carousel with custom scrollbar
+  - Mobile: 2-col grid, first 4 visible, "Show More" reveals rest
+  - Badges via product tags (badge:best-seller, badge:save-15, etc.)
+  - Image hover swap to secondary image
+  - Star ratings placeholder
+{% endcomment %}
+
+{%- liquid
+  assign collection = section.settings.collection
+  assign max_products = section.settings.max_products | default: 10
+  assign mobile_visible = section.settings.mobile_visible_products | default: 4
+  assign heading = section.settings.heading | default: 'Best Sellers'
+  assign link_text = section.settings.link_text | default: 'Shop All Best Sellers'
+  assign link_url = section.settings.link_url
+  assign show_reviews = section.settings.show_reviews
+  assign review_count = section.settings.review_count | default: '1,234 Reviews'
+  assign review_stars = section.settings.review_stars | default: 4.5
+-%}
+
+<div
+  class="best-sellers-section color-{{ section.settings.color_scheme }}"
+  id="best-sellers-{{ section.id }}"
+  style="
+    --bs-padding-top: {{ section.settings.padding_top }}px;
+    --bs-padding-bottom: {{ section.settings.padding_bottom }}px;
+  "
+>
+  <div class="best-sellers__container page-width">
+    {%- comment -%} Header {%- endcomment -%}
+    <div class="best-sellers__header">
+      <h2 class="best-sellers__title">{{ heading }}</h2>
+      {%- if link_url != blank -%}
+        <a href="{{ link_url }}" class="best-sellers__view-all">
+          {{ link_text }}
+          <span class="best-sellers__arrow" aria-hidden="true">&rarr;</span>
+        </a>
+      {%- endif -%}
+    </div>
+
+    {%- comment -%} Desktop: Horizontal scroll {%- endcomment -%}
+    <div class="best-sellers__scroll-wrapper best-sellers__desktop-only">
+      <div class="best-sellers__scroll-track" id="bs-scroll-{{ section.id }}">
+        {%- if collection != blank -%}
+          {%- for product in collection.products limit: max_products -%}
+            {%- render 'best-sellers-card',
+              product: product,
+              show_reviews: show_reviews,
+              review_count: review_count,
+              review_stars: review_stars,
+              index: forloop.index,
+              section_id: section.id
+            -%}
+          {%- endfor -%}
+        {%- else -%}
+          {%- for i in (1..max_products) -%}
+            {%- render 'best-sellers-card',
+              product: blank,
+              show_reviews: show_reviews,
+              review_count: review_count,
+              review_stars: review_stars,
+              index: i,
+              section_id: section.id
+            -%}
+          {%- endfor -%}
+        {%- endif -%}
+      </div>
+    </div>
+
+    {%- comment -%} Mobile: Grid with Show More {%- endcomment -%}
+    <div class="best-sellers__mobile-only">
+      <div class="best-sellers__grid" id="bs-grid-{{ section.id }}">
+        {%- if collection != blank -%}
+          {%- for product in collection.products limit: max_products -%}
+            <div class="best-sellers__grid-item{% if forloop.index > mobile_visible %} best-sellers__grid-item--hidden{% endif %}"
+              {% if forloop.index > mobile_visible %}data-bs-hidden{% endif %}
+            >
+              {%- render 'best-sellers-card',
+                product: product,
+                show_reviews: show_reviews,
+                review_count: review_count,
+                review_stars: review_stars,
+                index: forloop.index,
+                section_id: section.id
+              -%}
+            </div>
+          {%- endfor -%}
+        {%- else -%}
+          {%- for i in (1..max_products) -%}
+            <div class="best-sellers__grid-item{% if i > mobile_visible %} best-sellers__grid-item--hidden{% endif %}"
+              {% if i > mobile_visible %}data-bs-hidden{% endif %}
+            >
+              {%- render 'best-sellers-card',
+                product: blank,
+                show_reviews: show_reviews,
+                review_count: review_count,
+                review_stars: review_stars,
+                index: i,
+                section_id: section.id
+              -%}
+            </div>
+          {%- endfor -%}
+        {%- endif -%}
+      </div>
+
+      {%- assign products_count = collection.products_count | default: max_products -%}
+      {%- assign actual_count = products_count | at_most: max_products -%}
+      {%- if actual_count > mobile_visible -%}
+        <div class="best-sellers__show-more-wrapper">
+          <button
+            type="button"
+            class="best-sellers__show-more-btn"
+            id="bs-show-more-{{ section.id }}"
+            aria-expanded="false"
+            aria-controls="bs-grid-{{ section.id }}"
+          >
+            {{ section.settings.show_more_text | default: 'Show More' }}
+          </button>
+        </div>
+      {%- endif -%}
+    </div>
+  </div>
+</div>
+
+{% style %}
+  /* ===== Best Sellers Section ===== */
+  .best-sellers-section {
+    padding-top: var(--bs-padding-top);
+    padding-bottom: var(--bs-padding-bottom);
+  }
+
+  .best-sellers__container {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  /* --- Header --- */
+  .best-sellers__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .best-sellers__title {
+    font-size: clamp(1.5rem, 3vw, 2.25rem);
+    font-weight: 700;
+    margin: 0;
+    line-height: 1.2;
+  }
+
+  .best-sellers__view-all {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.875rem;
+    text-decoration: none;
+    color: var(--color-foreground);
+    letter-spacing: 0.02em;
+    transition: opacity 0.2s ease;
+    white-space: nowrap;
+  }
+
+  .best-sellers__view-all:hover {
+    opacity: 0.7;
+  }
+
+  .best-sellers__arrow {
+    font-size: 1.1em;
+    transition: transform 0.2s ease;
+  }
+
+  .best-sellers__view-all:hover .best-sellers__arrow {
+    transform: translateX(3px);
+  }
+
+  /* --- Desktop Scroll --- */
+  .best-sellers__scroll-wrapper {
+    position: relative;
+  }
+
+  .best-sellers__scroll-track {
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-behavior: smooth;
+    padding-bottom: 20px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Custom scrollbar */
+  .best-sellers__scroll-track::-webkit-scrollbar {
+    height: 3px;
+    transition: height 0.3s ease;
+  }
+
+  .best-sellers__scroll-track::-webkit-scrollbar-track {
+    background: var(--color-border, #e5e5e5);
+    border-radius: 3px;
+  }
+
+  .best-sellers__scroll-track::-webkit-scrollbar-thumb {
+    background: var(--color-foreground, #1a1a1a);
+    border-radius: 3px;
+    transition: height 0.3s ease;
+  }
+
+  .best-sellers__scroll-track:hover::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  /* Firefox scrollbar */
+  .best-sellers__scroll-track {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-foreground, #1a1a1a) var(--color-border, #e5e5e5);
+  }
+
+  /* --- Product Card --- */
+  .best-sellers__card {
+    flex: 0 0 calc((100% - 64px) / 5);
+    min-width: 220px;
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+    color: var(--color-foreground);
+  }
+
+  .best-sellers__card-media {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--product-corner-radius, 0);
+    aspect-ratio: 1 / 1;
+    background: #f5f5f5;
+  }
+
+  .best-sellers__card-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: opacity 0.35s ease;
+  }
+
+  .best-sellers__card-media img.best-sellers__img--secondary {
+    position: absolute;
+    top: 0;
+    left: 0;
+    opacity: 0;
+  }
+
+  .best-sellers__card:hover .best-sellers__img--secondary,
+  .best-sellers__card:focus-within .best-sellers__img--secondary {
+    opacity: 1;
+  }
+
+  .best-sellers__card:hover .best-sellers__img--primary,
+  .best-sellers__card:focus-within .best-sellers__img--primary {
+    opacity: 0;
+  }
+
+  /* --- Badges --- */
+  .best-sellers__badges {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    z-index: 2;
+    max-width: calc(100% - 20px);
+  }
+
+  .best-sellers__badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    border-radius: var(--badge-border-radius, 20px);
+    white-space: nowrap;
+    line-height: 1.4;
+  }
+
+  .best-sellers__badge--best-seller {
+    background: var(--color-foreground, #1a1a1a);
+    color: var(--color-background, #fff);
+  }
+
+  .best-sellers__badge--save {
+    background: #2d6b3f;
+    color: #fff;
+  }
+
+  .best-sellers__badge--new {
+    background: #0057b8;
+    color: #fff;
+  }
+
+  .best-sellers__badge--limited {
+    background: #8b5e3c;
+    color: #fff;
+  }
+
+  .best-sellers__badge--custom {
+    background: var(--color-foreground, #1a1a1a);
+    color: var(--color-background, #fff);
+  }
+
+  /* --- Card Info --- */
+  .best-sellers__card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding-top: 10px;
+  }
+
+  .best-sellers__card-title {
+    font-size: 0.8rem;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin: 0;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* --- Reviews --- */
+  .best-sellers__reviews {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.75rem;
+    color: var(--color-foreground);
+    opacity: 0.7;
+  }
+
+  .best-sellers__stars {
+    display: inline-flex;
+    gap: 1px;
+    color: #1a1a1a;
+  }
+
+  .best-sellers__star {
+    width: 12px;
+    height: 12px;
+  }
+
+  .best-sellers__review-count {
+    font-size: 0.7rem;
+  }
+
+  /* --- Price --- */
+  .best-sellers__price {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-top: 2px;
+  }
+
+  .best-sellers__price--compare {
+    text-decoration: line-through;
+    opacity: 0.5;
+    font-weight: 400;
+    margin-left: 6px;
+    font-size: 0.875rem;
+  }
+
+  /* --- Mobile Grid --- */
+  .best-sellers__grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  .best-sellers__grid-item--hidden {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.4s ease,
+                margin 0.5s ease;
+    margin-top: 0;
+  }
+
+  .best-sellers__grid-item--hidden.best-sellers__grid-item--visible {
+    max-height: 600px;
+    opacity: 1;
+    overflow: visible;
+    margin-top: 0;
+  }
+
+  /* --- Show More Button --- */
+  .best-sellers__show-more-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-top: 24px;
+  }
+
+  .best-sellers__show-more-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px 48px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    background: var(--color-foreground, #1a1a1a);
+    color: var(--color-background, #fff);
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    width: 100%;
+    max-width: 320px;
+  }
+
+  .best-sellers__show-more-btn:hover {
+    opacity: 0.85;
+  }
+
+  .best-sellers__show-more-btn:active {
+    transform: scale(0.98);
+  }
+
+  /* --- Responsive --- */
+  .best-sellers__desktop-only {
+    display: block;
+  }
+
+  .best-sellers__mobile-only {
+    display: none;
+  }
+
+  @media screen and (max-width: 749px) {
+    .best-sellers__desktop-only {
+      display: none;
+    }
+
+    .best-sellers__mobile-only {
+      display: block;
+    }
+
+    .best-sellers__card {
+      min-width: unset;
+      flex: unset;
+    }
+
+    .best-sellers__card-title {
+      font-size: 0.7rem;
+    }
+
+    .best-sellers__price {
+      font-size: 0.875rem;
+    }
+
+    .best-sellers__view-all {
+      display: none;
+    }
+  }
+
+  /* Placeholder card for onboarding */
+  .best-sellers__card-media--placeholder {
+    background: #e8e8e8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .best-sellers__card-media--placeholder svg {
+    width: 50%;
+    height: 50%;
+    opacity: 0.3;
+  }
+{% endstyle %}
+
+<script>
+  (function() {
+    const sectionId = '{{ section.id }}';
+    const showMoreBtn = document.getElementById('bs-show-more-' + sectionId);
+
+    if (showMoreBtn) {
+      showMoreBtn.addEventListener('click', function() {
+        const grid = document.getElementById('bs-grid-' + sectionId);
+        const hiddenItems = grid.querySelectorAll('[data-bs-hidden]');
+        const isExpanded = showMoreBtn.getAttribute('aria-expanded') === 'true';
+
+        if (!isExpanded) {
+          hiddenItems.forEach(function(item, index) {
+            setTimeout(function() {
+              item.classList.add('best-sellers__grid-item--visible');
+            }, index * 60);
+          });
+          showMoreBtn.setAttribute('aria-expanded', 'true');
+          showMoreBtn.textContent = '{{ section.settings.show_less_text | default: "Show Less" }}';
+        } else {
+          hiddenItems.forEach(function(item) {
+            item.classList.remove('best-sellers__grid-item--visible');
+          });
+          showMoreBtn.setAttribute('aria-expanded', 'false');
+          showMoreBtn.textContent = '{{ section.settings.show_more_text | default: "Show More" }}';
+        }
+      });
+    }
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Best Sellers",
+  "tag": "section",
+  "class": "best-sellers-section-wrapper",
+  "disabled_on": {
+    "groups": ["header", "footer"]
+  },
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Best Sellers"
+    },
+    {
+      "type": "collection",
+      "id": "collection",
+      "label": "Collection"
+    },
+    {
+      "type": "range",
+      "id": "max_products",
+      "label": "Maximum products",
+      "min": 4,
+      "max": 16,
+      "step": 1,
+      "default": 10
+    },
+    {
+      "type": "range",
+      "id": "mobile_visible_products",
+      "label": "Products visible on mobile",
+      "info": "Remaining products will be hidden behind the 'Show More' button",
+      "min": 2,
+      "max": 8,
+      "step": 2,
+      "default": 4
+    },
+    {
+      "type": "header",
+      "content": "Header link"
+    },
+    {
+      "type": "text",
+      "id": "link_text",
+      "label": "Link text",
+      "default": "Shop All Best Sellers"
+    },
+    {
+      "type": "url",
+      "id": "link_url",
+      "label": "Link URL"
+    },
+    {
+      "type": "header",
+      "content": "Reviews (placeholder)"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_reviews",
+      "label": "Show review stars",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "review_count",
+      "label": "Review count text",
+      "default": "1,234 Reviews",
+      "info": "Placeholder until a reviews app is installed"
+    },
+    {
+      "type": "range",
+      "id": "review_stars",
+      "label": "Star rating",
+      "min": 1,
+      "max": 5,
+      "step": 0.5,
+      "default": 4.5,
+      "info": "Placeholder rating shown on all cards"
+    },
+    {
+      "type": "header",
+      "content": "Mobile 'Show More' button"
+    },
+    {
+      "type": "text",
+      "id": "show_more_text",
+      "label": "Show more text",
+      "default": "Show More"
+    },
+    {
+      "type": "text",
+      "id": "show_less_text",
+      "label": "Show less text",
+      "default": "Show Less"
+    },
+    {
+      "type": "header",
+      "content": "Section layout"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "Color scheme",
+      "default": "scheme-1"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Top padding",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "default": 48
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Bottom padding",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "default": 48
+    }
+  ],
+  "presets": [
+    {
+      "name": "Best Sellers",
+      "category": "Products"
+    }
+  ]
+}
+{% endschema %}
