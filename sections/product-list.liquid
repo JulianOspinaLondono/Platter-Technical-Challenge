@@ -68,17 +68,15 @@
     assign list_items_array = list_items | strip | split: '<!--@list/split-->'
   %}
 
-  {%- comment -%} Desktop: normal resource-list (carousel/grid/editorial) {%- endcomment -%}
-  <div class="{% if has_mobile_grid %}hidden--mobile{% endif %}">
-    {% render 'resource-list',
-      list_items: list_items,
-      list_items_array: list_items_array,
-      settings: section.settings,
-      slide_count: max_items,
-      content_type: 'products',
-      test_id: 'resource-list-grid'
-    %}
-  </div>
+  {% render 'resource-list',
+    list_items: list_items,
+    list_items_array: list_items_array,
+    settings: section.settings,
+    slide_count: max_items,
+    content_type: 'products',
+    test_id: 'resource-list-grid',
+    mobile_hidden: has_mobile_grid
+  %}
 
   {%- if section.settings.show_scrollbar and section.settings.layout_type == 'carousel' -%}
     <div class="product-list-scrollbar" id="scrollbar-{{ section.id }}" aria-hidden="true">
