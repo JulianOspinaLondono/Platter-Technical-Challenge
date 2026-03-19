@@ -130,6 +130,9 @@
           startX = e.clientX;
           startScrollLeft = scroller.scrollLeft;
           thumb.setPointerCapture(e.pointerId);
+          scroller.style.scrollSnapType = 'none';
+          scroller.style.scrollBehavior = 'auto';
+          thumb.style.transition = 'none';
           e.preventDefault();
         });
 
@@ -145,7 +148,11 @@
         });
 
         document.addEventListener('pointerup', function() {
+          if (!isDragging) return;
           isDragging = false;
+          scroller.style.scrollSnapType = '';
+          scroller.style.scrollBehavior = '';
+          thumb.style.transition = '';
         });
 
         /* Click on track to jump */
@@ -214,6 +221,16 @@
     cursor: grab;
     transition: height 0.3s ease;
     will-change: transform, width;
+  }
+
+  /* Larger hit area for easier grabbing */
+  .product-list-scrollbar__thumb::before {
+    content: '';
+    position: absolute;
+    top: -0.75rem;
+    bottom: -0.75rem;
+    left: 0;
+    right: 0;
   }
 
   .product-list-scrollbar:hover .product-list-scrollbar__thumb,
