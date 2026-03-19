@@ -75,49 +75,53 @@
 
 {% stylesheet %}
   .product-badges {
-    --badge-inset: max(var(--padding-xs), calc((var(--border-radius) + var(--padding-xs)) * (1 - cos(45deg))));
-
     position: absolute;
     z-index: var(--layer-flat);
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 0.625rem;
+    top: 0.5rem;
+    left: 0.5rem;
   }
 
   .product-badges--bottom-left {
-    bottom: calc(var(--badge-inset) + var(--padding-block-start));
-    left: calc(var(--badge-inset) + var(--padding-inline-start));
+    top: auto;
+    bottom: 0.5rem;
+    left: 0.5rem;
   }
 
   .product-badges--top-left {
-    top: calc(var(--badge-inset) + var(--padding-block-start));
-    left: calc(var(--badge-inset) + var(--padding-inline-start));
+    top: 0.5rem;
+    left: 0.5rem;
   }
 
   .product-badges--top-right {
-    top: calc(var(--badge-inset) + var(--padding-block-start));
-    right: calc(var(--badge-inset) + var(--padding-inline-start));
+    top: 0.5rem;
+    left: auto;
+    right: 0.5rem;
   }
 
   .product-badges__badge {
-    --badge-font-size: var(--font-size--xs);
-
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     text-align: center;
     color: var(--color-foreground);
     background: var(--color-background);
-    font-size: var(--badge-font-size);
-    font-family: var(--badge-font-family);
-    font-weight: var(--badge-font-weight);
+    font-family: var(--font-h4--family);
+    font-style: var(--font-h4--style);
+    font-weight: var(--font-h4--weight);
+    font-size: clamp(0.5rem, 1.2vw, 0.65rem);
     text-transform: var(--badge-text-transform);
-    border-radius: var(--badge-border-radius);
+    border: 0.0625rem solid #000000;
+    border-radius: 6.25rem;
+    padding: 0.25rem 0.5rem;
+    line-height: 1;
+    white-space: nowrap;
   }
 
   .product-badges__badge--rectangle {
-    padding-block: var(--badge-rectangle-padding-block);
-    padding-inline: var(--badge-rectangle-padding-inline);
+    padding: 0.25rem 0.5rem;
   }
 
   /* Tag-based badge variants */
