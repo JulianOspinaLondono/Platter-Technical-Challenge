@@ -1,5 +1,12 @@
 {% liquid
   assign max_items = section.settings.max_products
+  assign mobile_show_more = section.settings.mobile_show_more
+  assign mobile_visible = section.settings.mobile_visible_products | default: 4
+  assign mobile_columns = section.settings.mobile_columns | default: '2'
+  assign has_mobile_grid = false
+  if mobile_show_more and section.settings.layout_type == 'carousel'
+    assign has_mobile_grid = true
+  endif
 %}
 
 <div class="section-background color-{{ section.settings.color_scheme }}"></div>
@@ -61,20 +68,58 @@
     assign list_items_array = list_items | strip | split: '<!--@list/split-->'
   %}
 
-  {% render 'resource-list',
-    list_items: list_items,
-    list_items_array: list_items_array,
-    settings: section.settings,
-    slide_count: max_items,
-    content_type: 'products',
-    test_id: 'resource-list-grid'
-  %}
+  {%- comment -%} Desktop: normal resource-list (carousel/grid/editorial) {%- endcomment -%}
+  <div class="{% if has_mobile_grid %}hidden--mobile{% endif %}">
+    {% render 'resource-list',
+      list_items: list_items,
+      list_items_array: list_items_array,
+      settings: section.settings,
+      slide_count: max_items,
+      content_type: 'products',
+      test_id: 'resource-list-grid'
+    %}
+  </div>
 
   {%- if section.settings.show_scrollbar and section.settings.layout_type == 'carousel' -%}
     <div class="product-list-scrollbar" id="scrollbar-{{ section.id }}" aria-hidden="true">
       <div class="product-list-scrollbar__track">
         <div class="product-list-scrollbar__thumb" id="scrollbar-thumb-{{ section.id }}"></div>
       </div>
+    </div>
+  {%- endif -%}
+
+  {%- comment -%} Mobile: grid with Show More {%- endcomment -%}
+  {%- if has_mobile_grid -%}
+    <div class="product-list-mobile-grid hidden--desktop" id="mobile-grid-{{ section.id }}"
+      style="
+        --mobile-grid-columns: {{ mobile_columns }};
+        --mobile-grid-gap: {{ section.settings.columns_gap | default: 8 }}px;
+        --mobile-grid-row-gap: {{ section.settings.rows_gap | default: 24 }}px;
+      "
+    >
+      <div class="product-list-mobile-grid__items">
+        {%- for item in list_items_array -%}
+          <div class="product-list-mobile-grid__item{% if forloop.index > mobile_visible %} product-list-mobile-grid__item--hidden{% endif %}"
+            {% if forloop.index > mobile_visible %}data-mobile-hidden{% endif %}
+          >
+            {{ item }}
+          </div>
+        {%- endfor -%}
+      </div>
+
+      {%- if list_items_array.size > mobile_visible -%}
+        <div class="product-list-mobile-grid__show-more">
+          <button
+            type="button"
+            class="product-list-mobile-grid__btn"
+            id="mobile-show-more-{{ section.id }}"
+            aria-expanded="false"
+            aria-controls="mobile-grid-{{ section.id }}"
+          >
+            {{ section.settings.show_more_text | default: 'Show More' }}
+          </button>
+        </div>
+      {%- endif -%}
     </div>
   {%- endif -%}
 
@@ -241,7 +286,124 @@
   .product-list-scrollbar__thumb:active {
     cursor: grabbing;
   }
+
+  /* ===== Mobile Grid with Show More ===== */
+  .product-list-mobile-grid__items {
+    display: grid;
+    grid-template-columns: repeat(var(--mobile-grid-columns, 2), 1fr);
+    gap: var(--mobile-grid-row-gap, 1.5rem) var(--mobile-grid-gap, 0.5rem);
+  }
+
+  .product-list-mobile-grid__item {
+    min-width: 0;
+  }
+
+  .product-list-mobile-grid__item--hidden {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+      opacity 0.4s ease 0.1s,
+      visibility 0s linear 0.5s;
+  }
+
+  .product-list-mobile-grid__item--visible {
+    max-height: 62.5rem;
+    opacity: 1;
+    overflow: visible;
+    visibility: visible;
+    transition:
+      max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+      opacity 0.4s ease 0.1s,
+      visibility 0s linear 0s;
+  }
+
+  .product-list-mobile-grid__show-more {
+    display: flex;
+    justify-content: center;
+    padding-top: 1.5rem;
+  }
+
+  .product-list-mobile-grid__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    max-width: 20rem;
+    padding: 0.875rem 2rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    background: var(--color-foreground, #1a1a1a);
+    color: var(--color-background, #fff);
+    border: none;
+    border-radius: 3.125rem;
+    cursor: pointer;
+    transition: opacity 0.2s ease, transform 0.15s ease;
+  }
+
+  .product-list-mobile-grid__btn:hover {
+    opacity: 0.85;
+  }
+
+  .product-list-mobile-grid__btn:active {
+    transform: scale(0.98);
+  }
 {% endstyle %}
+
+{%- if has_mobile_grid -%}
+  <script>
+    (function() {
+      var sectionId = '{{ section.id }}';
+      var showMoreText = {{ section.settings.show_more_text | default: 'Show More' | json }};
+      var showLessText = {{ section.settings.show_less_text | default: 'Show Less' | json }};
+
+      function initShowMore() {
+        var btn = document.getElementById('mobile-show-more-' + sectionId);
+        if (!btn) return;
+
+        var grid = document.getElementById('mobile-grid-' + sectionId);
+        var hiddenItems = grid.querySelectorAll('[data-mobile-hidden]');
+
+        btn.addEventListener('click', function() {
+          var isExpanded = btn.getAttribute('aria-expanded') === 'true';
+
+          if (!isExpanded) {
+            hiddenItems.forEach(function(item, index) {
+              setTimeout(function() {
+                item.classList.add('product-list-mobile-grid__item--visible');
+              }, index * 60);
+            });
+            btn.setAttribute('aria-expanded', 'true');
+            btn.textContent = showLessText;
+          } else {
+            /* Scroll to top of section before collapsing */
+            var sectionTop = grid.closest('.section-resource-list');
+            if (sectionTop) {
+              sectionTop.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+
+            setTimeout(function() {
+              hiddenItems.forEach(function(item) {
+                item.classList.remove('product-list-mobile-grid__item--visible');
+              });
+              btn.setAttribute('aria-expanded', 'false');
+              btn.textContent = showMoreText;
+            }, 300);
+          }
+        });
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initShowMore);
+      } else {
+        initShowMore();
+      }
+    })();
+  </script>
+{%- endif -%}
 
 {% schema %}
 {
@@ -301,6 +463,44 @@
       "info": "Displays a draggable scrollbar below the carousel on desktop",
       "default": false,
       "visible_if": "{{ section.settings.layout_type == 'carousel' }}"
+    },
+    {
+      "type": "header",
+      "content": "Mobile: Show More",
+      "visible_if": "{{ section.settings.layout_type == 'carousel' }}"
+    },
+    {
+      "type": "checkbox",
+      "id": "mobile_show_more",
+      "label": "Enable grid with Show More on mobile",
+      "info": "Replaces the carousel on mobile with a grid and a 'Show More' button",
+      "default": false,
+      "visible_if": "{{ section.settings.layout_type == 'carousel' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_visible_products",
+      "label": "Products visible on mobile",
+      "info": "Products shown before tapping 'Show More'",
+      "min": 2,
+      "max": 12,
+      "step": 2,
+      "default": 4,
+      "visible_if": "{{ section.settings.mobile_show_more == true }}"
+    },
+    {
+      "type": "text",
+      "id": "show_more_text",
+      "label": "Show more button text",
+      "default": "Show More",
+      "visible_if": "{{ section.settings.mobile_show_more == true }}"
+    },
+    {
+      "type": "text",
+      "id": "show_less_text",
+      "label": "Show less button text",
+      "default": "Show Less",
+      "visible_if": "{{ section.settings.mobile_show_more == true }}"
     },
     {
       "type": "range",
