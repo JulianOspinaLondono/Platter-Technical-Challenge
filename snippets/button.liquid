@@ -42,4 +42,42 @@
       text-decoration-color: transparent;
     }
   }
+
+  .link-arrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    font-family: var(--font-h2--family);
+    font-weight: 600;
+    font-size: 0.875rem;
+    line-height: 1.4;
+    letter-spacing: 0.03em;
+    color: #5C553A;
+    transition: opacity 0.2s ease;
+  }
+
+  .link-arrow::after {
+    content: '';
+    display: inline-block;
+    width: 1.125rem;
+    height: 0.75rem;
+    background: currentColor;
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 12' fill='none'%3E%3Cpath d='M1 6h16m0 0L12 1m5 5l-5 5' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 12' fill='none'%3E%3Cpath d='M1 6h16m0 0L12 1m5 5l-5 5' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    mask-size: contain;
+    -webkit-mask-size: contain;
+    mask-repeat: no-repeat;
+    -webkit-mask-repeat: no-repeat;
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+  }
+
+  .link-arrow:hover {
+    opacity: 0.7;
+  }
+
+  .link-arrow:hover::after {
+    transform: translateX(0.1875rem);
+  }
 {% endstylesheet %}

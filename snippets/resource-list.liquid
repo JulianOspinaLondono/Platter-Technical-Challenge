@@ -104,6 +104,9 @@
     {% if settings.carousel_on_mobile and settings.layout_type != 'carousel' %}
       hidden--mobile
     {% endif %}
+    {% if mobile_hidden %}
+      hidden--mobile
+    {% endif %}
     {{ resource_list_classes }}
   "
   style="{{ resource_list_styles }}"

@@ -1,5 +1,12 @@
 {% liquid
   assign max_items = section.settings.max_products
+  assign mobile_show_more = section.settings.mobile_show_more
+  assign mobile_visible = section.settings.mobile_visible_products | default: 4
+  assign mobile_columns = section.settings.mobile_columns | default: '2'
+  assign has_mobile_grid = false
+  if mobile_show_more and section.settings.layout_type == 'carousel'
+    assign has_mobile_grid = true
+  endif
 %}
 
 <div class="section-background color-{{ section.settings.color_scheme }}"></div>
@@ -67,8 +74,52 @@
     settings: section.settings,
     slide_count: max_items,
     content_type: 'products',
-    test_id: 'resource-list-grid'
+    test_id: 'resource-list-grid',
+    mobile_hidden: has_mobile_grid
   %}
+
+  {%- if section.settings.show_scrollbar and section.settings.layout_type == 'carousel' -%}
+    <div class="product-list-scrollbar" id="scrollbar-{{ section.id }}" aria-hidden="true">
+      <div class="product-list-scrollbar__track">
+        <div class="product-list-scrollbar__thumb" id="scrollbar-thumb-{{ section.id }}"></div>
+      </div>
+    </div>
+  {%- endif -%}
+
+  {%- comment -%} Mobile: grid with Show More {%- endcomment -%}
+  {%- if has_mobile_grid -%}
+    <div class="product-list-mobile-grid hidden--desktop" id="mobile-grid-{{ section.id }}"
+      style="
+        --mobile-grid-columns: {{ mobile_columns }};
+        --mobile-grid-gap: {{ section.settings.columns_gap | default: 8 }}px;
+        --mobile-grid-row-gap: {{ section.settings.rows_gap | default: 24 }}px;
+      "
+    >
+      <div class="product-list-mobile-grid__items">
+        {%- for item in list_items_array -%}
+          <div class="product-list-mobile-grid__item{% if forloop.index > mobile_visible %} product-list-mobile-grid__item--hidden{% endif %}"
+            {% if forloop.index > mobile_visible %}data-mobile-hidden{% endif %}
+          >
+            {{ item }}
+          </div>
+        {%- endfor -%}
+      </div>
+
+      {%- if list_items_array.size > mobile_visible -%}
+        <div class="product-list-mobile-grid__show-more">
+          <button
+            type="button"
+            class="product-list-mobile-grid__btn"
+            id="mobile-show-more-{{ section.id }}"
+            aria-expanded="false"
+            aria-controls="mobile-grid-{{ section.id }}"
+          >
+            {{ section.settings.show_more_text | default: 'Show More' }}
+          </button>
+        </div>
+      {%- endif -%}
+    </div>
+  {%- endif -%}
 
   <div
     class="section-resource-list__content"
@@ -77,6 +128,301 @@
     {%- content_for 'blocks' -%}
   </div>
 </div>
+
+{%- if section.settings.show_scrollbar and section.settings.layout_type == 'carousel' -%}
+  <script>
+    (function() {
+      var sectionId = '{{ section.id }}';
+
+      function initScrollbar() {
+        var section = document.getElementById('scrollbar-' + sectionId);
+        if (!section) return;
+
+        var thumb = document.getElementById('scrollbar-thumb-' + sectionId);
+        var sectionEl = section.closest('.section-resource-list');
+        if (!sectionEl) return;
+
+        var scroller = sectionEl.querySelector('slideshow-slides');
+        if (!scroller) return;
+
+        function updateThumb() {
+          var scrollWidth = scroller.scrollWidth - scroller.clientWidth;
+          if (scrollWidth <= 0) {
+            section.style.display = 'none';
+            return;
+          }
+          section.style.display = '';
+          var ratio = scroller.clientWidth / scroller.scrollWidth;
+          var progress = scroller.scrollLeft / scrollWidth;
+          var trackWidth = section.querySelector('.product-list-scrollbar__track').offsetWidth;
+          var thumbWidth = Math.max(Math.min(ratio * trackWidth, trackWidth * 0.33), 48);
+          thumb.style.width = thumbWidth + 'px';
+          thumb.style.transform = 'translateX(' + (progress * (trackWidth - thumbWidth)) + 'px)';
+        }
+
+        scroller.addEventListener('scroll', updateThumb, { passive: true });
+        window.addEventListener('resize', updateThumb, { passive: true });
+
+        /* Drag the thumb to scroll */
+        var isDragging = false;
+        var startX = 0;
+        var startScrollLeft = 0;
+
+        thumb.addEventListener('pointerdown', function(e) {
+          isDragging = true;
+          startX = e.clientX;
+          startScrollLeft = scroller.scrollLeft;
+          thumb.setPointerCapture(e.pointerId);
+          scroller.style.scrollSnapType = 'none';
+          scroller.style.scrollBehavior = 'auto';
+          thumb.style.transition = 'none';
+          e.preventDefault();
+        });
+
+        document.addEventListener('pointermove', function(e) {
+          if (!isDragging) return;
+          var trackWidth = section.querySelector('.product-list-scrollbar__track').offsetWidth;
+          var thumbWidth = thumb.offsetWidth;
+          var maxThumbTravel = trackWidth - thumbWidth;
+          var scrollWidth = scroller.scrollWidth - scroller.clientWidth;
+          var deltaX = e.clientX - startX;
+          var scrollDelta = (deltaX / maxThumbTravel) * scrollWidth;
+          scroller.scrollLeft = startScrollLeft + scrollDelta;
+        });
+
+        document.addEventListener('pointerup', function() {
+          if (!isDragging) return;
+          isDragging = false;
+          scroller.style.scrollSnapType = '';
+          scroller.style.scrollBehavior = '';
+          thumb.style.transition = '';
+        });
+
+        /* Click on track to jump */
+        section.querySelector('.product-list-scrollbar__track').addEventListener('click', function(e) {
+          if (e.target === thumb) return;
+          var rect = this.getBoundingClientRect();
+          var clickPos = (e.clientX - rect.left) / rect.width;
+          var scrollWidth = scroller.scrollWidth - scroller.clientWidth;
+          scroller.scrollTo({ left: clickPos * scrollWidth, behavior: 'smooth' });
+        });
+
+        /* Initial state with delay to wait for layout */
+        setTimeout(updateThumb, 100);
+
+        /* MutationObserver in case slideshow loads lazily */
+        var observer = new MutationObserver(updateThumb);
+        observer.observe(scroller, { childList: true, subtree: true });
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initScrollbar);
+      } else {
+        initScrollbar();
+      }
+    })();
+  </script>
+{%- endif -%}
+
+{% style %}
+  /* Mobile: hide "Shop All" button and center header */
+  @media screen and (max-width: 749px) {
+    #shopify-section-{{ section.id }} .section-resource-list__header .link-arrow {
+      display: none;
+    }
+
+    #shopify-section-{{ section.id }} .section-resource-list__header .group-block-content {
+      justify-content: center !important;
+      align-items: center !important;
+      width: 100%;
+    }
+
+    #shopify-section-{{ section.id }} .section-resource-list__header .group-block-content > * {
+      text-align: center;
+    }
+  }
+
+  .product-list-scrollbar {
+    width: 100%;
+    padding-top: 1.5rem;
+    display: none;
+  }
+
+  @media screen and (min-width: 750px) {
+    .product-list-scrollbar {
+      display: block;
+    }
+  }
+
+  .product-list-scrollbar__track {
+    position: relative;
+    width: 100%;
+    height: 0.125rem;
+    background: var(--color-border, #e5e5e5);
+    border-radius: 6.25rem;
+    cursor: pointer;
+    transition: height 0.3s ease;
+  }
+
+  .product-list-scrollbar:hover .product-list-scrollbar__track,
+  .product-list-scrollbar:active .product-list-scrollbar__track {
+    height: 0.375rem;
+  }
+
+  .product-list-scrollbar__thumb {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    min-width: 3rem;
+    max-width: 33%;
+    background: var(--color-foreground, #1a1a1a);
+    border-radius: 6.25rem;
+    cursor: grab;
+    transition: height 0s;
+    will-change: transform, width;
+  }
+
+  /* Larger hit area for easier grabbing */
+  .product-list-scrollbar__thumb::before {
+    content: '';
+    position: absolute;
+    top: -0.75rem;
+    bottom: -0.75rem;
+    left: 0;
+    right: 0;
+  }
+
+  .product-list-scrollbar:hover .product-list-scrollbar__thumb,
+  .product-list-scrollbar:active .product-list-scrollbar__thumb {
+    height: 0.375rem;
+  }
+
+  .product-list-scrollbar__thumb:active {
+    cursor: grabbing;
+  }
+
+  /* ===== Mobile Grid with Show More ===== */
+  .product-list-mobile-grid__items {
+    display: grid;
+    grid-template-columns: repeat(var(--mobile-grid-columns, 2), 1fr);
+    gap: var(--mobile-grid-row-gap, 1.5rem) var(--mobile-grid-gap, 0.5rem);
+  }
+
+  .product-list-mobile-grid__item {
+    min-width: 0;
+  }
+
+  .product-list-mobile-grid__item--hidden {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+      opacity 0.4s ease 0.1s,
+      visibility 0s linear 0.5s;
+  }
+
+  .product-list-mobile-grid__item--visible {
+    max-height: 62.5rem;
+    opacity: 1;
+    overflow: visible;
+    visibility: visible;
+    transition:
+      max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+      opacity 0.4s ease 0.1s,
+      visibility 0s linear 0s;
+  }
+
+  .product-list-mobile-grid__show-more {
+    display: flex;
+    justify-content: center;
+    padding-top: 1.5rem;
+  }
+
+  .product-list-mobile-grid__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    max-width: 20.4375rem;
+    padding: 1rem 1.5rem;
+    font-family: var(--font-h2--family);
+    font-weight: 600;
+    font-size: 1rem;
+    line-height: 1.4;
+    letter-spacing: 0.03em;
+    text-align: center;
+    background: #1C1D1D;
+    color: #ffffff;
+    border: none;
+    border-radius: 6.25rem;
+    cursor: pointer;
+    transition: opacity 0.2s ease, transform 0.15s ease;
+  }
+
+  .product-list-mobile-grid__btn:hover {
+    opacity: 0.85;
+  }
+
+  .product-list-mobile-grid__btn:active {
+    transform: scale(0.98);
+  }
+{% endstyle %}
+
+{%- if has_mobile_grid -%}
+  <script>
+    (function() {
+      var sectionId = '{{ section.id }}';
+      var showMoreText = {{ section.settings.show_more_text | default: 'Show More' | json }};
+      var showLessText = {{ section.settings.show_less_text | default: 'Show Less' | json }};
+
+      function initShowMore() {
+        var btn = document.getElementById('mobile-show-more-' + sectionId);
+        if (!btn) return;
+
+        var grid = document.getElementById('mobile-grid-' + sectionId);
+        var hiddenItems = grid.querySelectorAll('[data-mobile-hidden]');
+
+        btn.addEventListener('click', function() {
+          var isExpanded = btn.getAttribute('aria-expanded') === 'true';
+
+          if (!isExpanded) {
+            hiddenItems.forEach(function(item, index) {
+              setTimeout(function() {
+                item.classList.add('product-list-mobile-grid__item--visible');
+              }, index * 60);
+            });
+            btn.setAttribute('aria-expanded', 'true');
+            btn.textContent = showLessText;
+          } else {
+            /* Scroll to top of section before collapsing */
+            var sectionTop = grid.closest('.section-resource-list');
+            if (sectionTop) {
+              sectionTop.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+
+            setTimeout(function() {
+              hiddenItems.forEach(function(item) {
+                item.classList.remove('product-list-mobile-grid__item--visible');
+              });
+              btn.setAttribute('aria-expanded', 'false');
+              btn.textContent = showMoreText;
+            }, 300);
+          }
+        });
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initShowMore);
+      } else {
+        initShowMore();
+      }
+    })();
+  </script>
+{%- endif -%}
 
 {% schema %}
 {
@@ -128,6 +474,52 @@
       "label": "t:settings.carousel_on_mobile",
       "default": false,
       "visible_if": "{{ section.settings.layout_type != 'carousel' }}"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_scrollbar",
+      "label": "Show scroll progress bar",
+      "info": "Displays a draggable scrollbar below the carousel on desktop",
+      "default": false,
+      "visible_if": "{{ section.settings.layout_type == 'carousel' }}"
+    },
+    {
+      "type": "header",
+      "content": "Mobile: Show More",
+      "visible_if": "{{ section.settings.layout_type == 'carousel' }}"
+    },
+    {
+      "type": "checkbox",
+      "id": "mobile_show_more",
+      "label": "Enable grid with Show More on mobile",
+      "info": "Replaces the carousel on mobile with a grid and a 'Show More' button",
+      "default": false,
+      "visible_if": "{{ section.settings.layout_type == 'carousel' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_visible_products",
+      "label": "Products visible on mobile",
+      "info": "Products shown before tapping 'Show More'",
+      "min": 2,
+      "max": 12,
+      "step": 2,
+      "default": 4,
+      "visible_if": "{{ section.settings.mobile_show_more == true }}"
+    },
+    {
+      "type": "text",
+      "id": "show_more_text",
+      "label": "Show more button text",
+      "default": "Show More",
+      "visible_if": "{{ section.settings.mobile_show_more == true }}"
+    },
+    {
+      "type": "text",
+      "id": "show_less_text",
+      "label": "Show less button text",
+      "default": "Show Less",
+      "visible_if": "{{ section.settings.mobile_show_more == true }}"
     },
     {
       "type": "range",

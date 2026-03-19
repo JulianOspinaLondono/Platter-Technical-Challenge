@@ -1481,6 +1481,58 @@
       },
       {
         "type": "header",
+        "content": "Tag-based badges"
+      },
+      {
+        "type": "color",
+        "id": "badge_best_seller_bg",
+        "label": "Best Seller background",
+        "default": "#1a1a1a"
+      },
+      {
+        "type": "color",
+        "id": "badge_best_seller_color",
+        "label": "Best Seller text",
+        "default": "#ffffff"
+      },
+      {
+        "type": "color",
+        "id": "badge_save_bg",
+        "label": "Save badge background",
+        "default": "#2d6b3f"
+      },
+      {
+        "type": "color",
+        "id": "badge_save_color",
+        "label": "Save badge text",
+        "default": "#ffffff"
+      },
+      {
+        "type": "color",
+        "id": "badge_new_bg",
+        "label": "New badge background",
+        "default": "#0057b8"
+      },
+      {
+        "type": "color",
+        "id": "badge_new_color",
+        "label": "New badge text",
+        "default": "#ffffff"
+      },
+      {
+        "type": "color",
+        "id": "badge_limited_bg",
+        "label": "Limited badge background",
+        "default": "#8b5e3c"
+      },
+      {
+        "type": "color",
+        "id": "badge_limited_color",
+        "label": "Limited badge text",
+        "default": "#ffffff"
+      },
+      {
+        "type": "header",
         "content": "t:names.typography"
       },
       {
